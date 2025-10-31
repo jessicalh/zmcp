@@ -5,7 +5,8 @@
   "type": "module",
   "main": "dist/index.js",
   "bin": {
-    "zmcp": "./dist/index.js"
+    "zmcp": "./dist/cli.js",
+    "zmcp-server": "./dist/index.js"
   },
   "scripts": {
     "build": "tsc",

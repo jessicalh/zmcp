@@ -3,7 +3,7 @@
 > ⚠️ **Status: Early Testing Phase**
 > This MCP server is newly developed and ready for initial testing. All core features have passed basic tests but should be considered experimental. Use with caution in production research workflows.
 
-A Model Context Protocol (MCP) server that enables Claude Desktop to manage citations in your Zotero library. Supports academic articles (with PDFs) and protein structures (with PDB files).
+A Model Context Protocol (MCP) server that enables Claude Desktop to manage citations in your Zotero library. Also includes a **command-line interface (CLI)** for use in MATLAB, Python, Colab, and shell scripts. Supports academic articles (with PDFs) and protein structures (with PDB files).
 
 ## Features (Ready for Testing)
 
@@ -140,6 +140,81 @@ Copy contents and paste into Claude Desktop's skill creator (Settings → Capabi
 ### PDB Structure Tools
 - **fetch_pdb** - Get PDB metadata and file from RCSB
 - **save_pdb_to_zotero** - Save structure with citation + PDB file
+
+## Command Line Interface (CLI)
+
+The CLI provides direct command-line access for MATLAB, Python, Colab, and shell scripts.
+
+### Installation
+
+```bash
+npm install -g .  # Install globally for 'zmcp' command
+# or use directly: node dist/cli.js <command>
+```
+
+### CLI Commands
+
+```bash
+# Fetch PDB structure and save to file
+zmcp fetch-pdb 4HHB --output hemoglobin.pdb
+
+# Save PDB to Zotero with citation
+zmcp save-pdb 4HHB --collection "My Structures"
+
+# Save article to Zotero
+zmcp save-article --title "My Paper" --url "https://..." --pdf paper.pdf
+
+# Search library
+zmcp search "neural networks"
+
+# Get citation details
+zmcp get ITEMKEY123
+
+# Download attachment
+zmcp download ATTACHKEY output.pdb
+
+# List collections
+zmcp collections
+
+# JSON output for scripting
+zmcp fetch-pdb 4HHB --json
+zmcp search "protein" --json
+```
+
+### Use in MATLAB
+
+```matlab
+% Fetch PDB structure
+[status, result] = system('zmcp fetch-pdb 4HHB --output hemo.pdb --json');
+data = jsondecode(result);
+fprintf('Fetched %s: %d bytes\n', data.pdbId, data.fileSize);
+
+% pdbData = pdbread('hemo.pdb');  % Analyze with Bioinformatics Toolbox
+```
+
+### Use in Python/Colab
+
+```python
+import subprocess, json
+
+# Fetch PDB structure
+result = subprocess.run(['zmcp', 'fetch-pdb', '4HHB', '--output', 'hemo.pdb', '--json'],
+                       capture_output=True, text=True)
+data = json.loads(result.stdout)
+print(f"Fetched {data['pdbId']}: {data['fileSize']} bytes")
+
+# from Bio.PDB import PDBParser
+# structure = PDBParser().get_structure('4HHB', 'hemo.pdb')
+```
+
+See `examples/matlab_example.m` and `examples/python_colab_example.py` for complete workflows.
+
+### Simultaneous Use
+
+The CLI and MCP server can run simultaneously:
+- **Claude Desktop** uses the MCP server (stdio transport)
+- **MATLAB/Python/CLI** use the command-line interface
+- Both access the same Zotero library safely via API versioning
 
 ## Test Coverage
 
