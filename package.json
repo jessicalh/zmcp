@@ -1,0 +1,38 @@
+{
+  "name": "zmcp",
+  "version": "1.0.0",
+  "description": "Zotero MCP Server - Citation management for Claude Desktop",
+  "type": "module",
+  "main": "dist/index.js",
+  "bin": {
+    "zmcp": "./dist/index.js"
+  },
+  "scripts": {
+    "build": "tsc",
+    "dev": "tsx src/index.ts",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "test:integration": "vitest run --config vitest.integration.config.ts",
+    "lint": "tsc --noEmit"
+  },
+  "keywords": [
+    "zotero",
+    "mcp",
+    "citations",
+    "research",
+    "claude"
+  ],
+  "author": "jessicalh",
+  "license": "MIT",
+  "dependencies": {
+    "@modelcontextprotocol/sdk": "^1.0.4",
+    "node-fetch": "^3.3.2",
+    "zod": "^3.23.8"
+  },
+  "devDependencies": {
+    "@types/node": "^22.9.0",
+    "tsx": "^4.19.2",
+    "typescript": "^5.6.3",
+    "vitest": "^2.1.8"
+  }
+}

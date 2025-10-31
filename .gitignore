@@ -1,0 +1,48 @@
+# Dependencies
+node_modules/
+
+# Build output
+dist/
+*.tsbuildinfo
+
+# Config (contains credentials)
+config/zotero.json
+.env
+
+# Test coverage
+coverage/
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Logs
+*.log
+logs/
+
+# Temp
+tmp/
+temp/
+
+# Test files (downloaded structures and PDFs)
+test-files/verify/
+test-files/*.pdb
+test-files/*.pdf
+
+# Temporary skill packaging
+save-article-skill/
+save-article-to-zotero/
+*.zip
+
+# Claude specific
+.claude/
+
+# Windows temp files
+nul

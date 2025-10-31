@@ -1,0 +1,7 @@
+{
+  "username": "your-zotero-username",
+  "userId": 0,
+  "apiKey": "YOUR_API_KEY_HERE",
+  "incomingCollection": "Incoming",
+  "baseUrl": "https://api.zotero.org"
+}
