@@ -208,7 +208,8 @@ export class ZoteroClient {
       return cleaned
     })
 
-    console.error('Cleaned items being sent:', JSON.stringify(cleanItems, null, 2))
+    // Only log cleaned items on verbose mode or when debugging
+    // console.error('Cleaned items being sent:', JSON.stringify(cleanItems, null, 2))
 
     const response = await fetch(`${this.baseUserUrl}/items`, {
       method: 'POST',
@@ -875,9 +876,6 @@ export class ZoteroClient {
       // Remove template fields
       delete item.key
       delete item.version
-
-      // Debug: Log what we're sending for PDB
-      console.error('PDB item being created:', JSON.stringify(item, null, 2))
 
       // Create the citation
       const result = await this.createItems([item])

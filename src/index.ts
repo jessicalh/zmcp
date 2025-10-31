@@ -217,43 +217,47 @@ server.setRequestHandler(ListToolsRequestSchema, async () => {
 server.setRequestHandler(CallToolRequestSchema, async (request) => {
   const { name, arguments: args } = request.params
 
-  // Log all tool calls for debugging
-  console.error(`Tool called: ${name}`)
-  console.error(`Arguments:`, JSON.stringify(args, null, 2))
+  // Log tool calls concisely
+  console.error(`[${new Date().toISOString()}] Tool: ${name}`)
 
   try {
     switch (name) {
       case 'create_citation': {
         const input = args as unknown as CreateCitationInput
-        console.error(`Processing create_citation with title: ${input.title}`)
         const result = await zotero.createCitation(input)
 
         if (result.success) {
-          // Automatically verify the citation
+          // Automatically verify the citation (log details to stderr)
           const verification = await zotero.verifyCitation(result.itemKey)
 
-          let noteInfo = ''
-          if (verification.children && verification.children.length > 0) {
+          console.error(`✓ Verification complete for ${result.itemKey}`)
+          if (verification.children) {
             const notes = verification.children.filter(c => c.itemType === 'note')
-            if (notes.length > 0) {
-              noteInfo = `\n\nAttached note with search context and summary.`
-            }
+            const attachments = verification.children.filter(c => c.itemType === 'attachment')
+            console.error(`  - Notes: ${notes.length}, Attachments: ${attachments.length}`)
           }
+
+          // Concise response for Claude Desktop
+          const tagCount = result.tags?.length || 0
+          const hasNote = result.noteKey ? '✓ Note added' : ''
+          const hasAttachment = result.attachmentKey ? '✓ PDF attached' : ''
+          const extras = [hasNote, hasAttachment, tagCount > 0 ? `${tagCount} tags` : ''].filter(Boolean).join(', ')
 
           return {
             content: [
               {
                 type: 'text',
-                text: `✓ Citation created successfully!\n\nItem Key: ${result.itemKey}\nTitle: ${result.title}\nURL: ${result.url || 'N/A'}\nCollection: ${input.collectionName || config.incomingCollection}${noteInfo}\n\n${result.message}`
+                text: `✓ Saved: "${result.title}" (${result.itemKey})${extras ? '\n' + extras : ''}`
               }
             ]
           }
         } else {
+          console.error(`✗ Citation creation failed: ${result.message}`)
           return {
             content: [
               {
                 type: 'text',
-                text: `✗ Failed to create citation: ${result.message}`
+                text: `✗ Failed: ${result.message}`
               }
             ],
             isError: true
@@ -337,19 +341,19 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
         const item = verification.item!
         const children = verification.children!
         const notes = children.filter(c => c.itemType === 'note')
+        const attachments = children.filter(c => c.itemType === 'attachment')
 
-        let status = `✓ Citation verified!\n\n`
-        status += `Item Key: ${itemKey}\n`
-        status += `Title: ${item.title || 'N/A'}\n`
-        status += `URL: ${item.url || 'N/A'}\n`
-        status += `Has Notes: ${notes.length > 0 ? `Yes (${notes.length})` : 'No'}\n`
-        status += `Has URL: ${item.url ? 'Yes' : 'No'}\n`
+        // Log details to stderr
+        console.error(`✓ Citation ${itemKey} verified`)
+        console.error(`  - Title: ${item.title}`)
+        console.error(`  - Notes: ${notes.length}, Attachments: ${attachments.length}`)
 
+        // Concise response
         return {
           content: [
             {
               type: 'text',
-              text: status
+              text: `✓ Verified (${itemKey}): ${notes.length} notes, ${attachments.length} attachments`
             }
           ]
         }
@@ -370,19 +374,22 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
           }
         }
 
-        let output = `Found ${items.length} citation(s) matching "${query}":\n\n`
-        items.forEach((item, i) => {
-          output += `${i + 1}. [${item.key}] ${item.title || 'Untitled'}\n`
-          if (item.creators && item.creators.length > 0) {
-            output += `   Authors: ${item.creators.slice(0, 3).map(c =>
-              c.name || `${c.firstName} ${c.lastName}`
-            ).join(', ')}${item.creators.length > 3 ? ', ...' : ''}\n`
-          }
-          if (item.date) {
-            output += `   Date: ${item.date}\n`
-          }
-          output += '\n'
+        // Log full details to stderr
+        console.error(`Search for "${query}" returned ${items.length} items`)
+        items.forEach(item => {
+          console.error(`  - [${item.key}] ${item.title}`)
         })
+
+        // Concise response - limit to first 10 results
+        const displayItems = items.slice(0, 10)
+        let output = `Found ${items.length} citation(s):\n`
+        displayItems.forEach((item, i) => {
+          const title = (item.title || 'Untitled').substring(0, 70)
+          output += `${i + 1}. ${title} (${item.key})\n`
+        })
+        if (items.length > 10) {
+          output += `\n...and ${items.length - 10} more`
+        }
 
         return {
           content: [
@@ -408,9 +415,19 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
           }
         }
 
-        let output = `Your Zotero collections (${collections.length}):\n\n`
+        // Log full details to stderr
+        console.error(`Collections: ${collections.length}`)
+        collections.forEach(col => {
+          const name = col.name || (col as any).data?.name || 'Unnamed'
+          console.error(`  - [${col.key || (col as any).data?.key}] ${name}`)
+        })
+
+        // Concise response
+        let output = `${collections.length} collections:\n`
         collections.forEach((col, i) => {
-          output += `${i + 1}. [${col.key}] ${col.name}\n`
+          const name = col.name || (col as any).data?.name || 'Unnamed'
+          const key = col.key || (col as any).data?.key
+          output += `${i + 1}. ${name} (${key})\n`
         })
 
         return {
@@ -440,29 +457,21 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
         }
 
         const meta = result.metadata
-        let output = `✓ Fetched PDB ${result.pdbId}\n\n`
-        output += `Title: ${meta.title}\n`
-        output += `Authors: ${meta.authors.slice(0, 3).map(a => `${a.firstName} ${a.lastName}`).join(', ')}${meta.authors.length > 3 ? ', ...' : ''}\n`
-        output += `Released: ${meta.releaseDate}\n`
-        output += `Method: ${meta.experimentalMethod}\n`
-        if (meta.resolution) {
-          output += `Resolution: ${meta.resolution} Å\n`
-        }
-        if (meta.organism) {
-          output += `Organism: ${meta.organism}\n`
-        }
-        output += `DOI: ${meta.doi}\n`
-        output += `URL: https://www.rcsb.org/structure/${result.pdbId}\n\n`
-        output += `PDB file: ${result.pdbFileContent.length} characters\n`
-        if (result.cifFileContent) {
-          output += `CIF file: ${result.cifFileContent.length} characters\n`
-        }
 
+        // Log full details to stderr
+        console.error(`✓ Fetched PDB ${result.pdbId}`)
+        console.error(`  - Title: ${meta.title}`)
+        console.error(`  - Authors: ${meta.authors.length}`)
+        console.error(`  - Method: ${meta.experimentalMethod}`)
+        console.error(`  - File size: ${result.pdbFileContent.length} chars`)
+
+        // Concise response
+        const fileSize = (result.pdbFileContent.length / 1024).toFixed(1)
         return {
           content: [
             {
               type: 'text',
-              text: output
+              text: `✓ Fetched ${result.pdbId}: ${meta.title.substring(0, 60)}...\n${meta.experimentalMethod}, ${meta.resolution || 'N/A'} Å, ${fileSize}KB`
             }
           ]
         }
@@ -484,26 +493,27 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
           }
         }
 
-        // Verify the citation
+        // Verify the citation (log details to stderr)
         const verification = await zotero.verifyCitation(result.itemKey)
 
-        let noteInfo = ''
+        console.error(`✓ PDB verification complete for ${result.itemKey}`)
         if (verification.children) {
           const notes = verification.children.filter(c => c.itemType === 'note')
           const attachments = verification.children.filter(c => c.itemType === 'attachment')
-          if (notes.length > 0) {
-            noteInfo += `\n✓ Note with structure details attached`
-          }
-          if (attachments.length > 0) {
-            noteInfo += `\n✓ PDB file attached (${attachments.length} file${attachments.length > 1 ? 's' : ''})`
-          }
+          console.error(`  - Notes: ${notes.length}, Attachments: ${attachments.length}`)
         }
+
+        // Concise response for Claude Desktop
+        const hasNote = result.noteKey ? '✓ Note added' : ''
+        const hasFile = result.attachmentKey ? '✓ PDB file attached' : ''
+        const tagCount = result.tags?.length || 0
+        const extras = [hasNote, hasFile, tagCount > 0 ? `${tagCount} tags` : ''].filter(Boolean).join(', ')
 
         return {
           content: [
             {
               type: 'text',
-              text: `✓ PDB structure saved successfully!\n\nItem Key: ${result.itemKey}\nTitle: ${result.title}\nURL: ${result.url}\nTags: ${result.tags?.join(', ')}${noteInfo}\n\n${result.message}`
+              text: `✓ Saved PDB: "${result.title.substring(0, 60)}..." (${result.itemKey})${extras ? '\n' + extras : ''}`
             }
           ]
         }
