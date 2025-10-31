@@ -179,14 +179,36 @@ export class ZoteroClient {
     // Clean items - remove any fields that shouldn't be there
     const cleanItems = items.map(item => {
       const cleaned = { ...item }
-      // Remove any undefined or null values
+
+      // Fix collections array - should be array of strings (keys), not objects
+      if (cleaned.collections && Array.isArray(cleaned.collections)) {
+        cleaned.collections = cleaned.collections.map((col: any) => {
+          if (typeof col === 'string') {
+            return col
+          } else if (col && typeof col === 'object') {
+            // Extract key from collection object
+            return col.key || col.data?.key || col
+          }
+          return col
+        }).filter((k: any) => typeof k === 'string')
+      }
+
+      // Remove any undefined, null, or empty string values
       Object.keys(cleaned).forEach(key => {
-        if (cleaned[key] === undefined || cleaned[key] === null || cleaned[key] === '') {
+        const value = cleaned[key]
+        if (value === undefined || value === null || value === '') {
+          delete cleaned[key]
+        }
+        // Also remove empty arrays (except for tags and collections which can be empty)
+        if (Array.isArray(value) && value.length === 0 && key !== 'tags' && key !== 'collections') {
           delete cleaned[key]
         }
       })
+
       return cleaned
     })
+
+    console.error('Cleaned items being sent:', JSON.stringify(cleanItems, null, 2))
 
     const response = await fetch(`${this.baseUserUrl}/items`, {
       method: 'POST',
@@ -853,6 +875,9 @@ export class ZoteroClient {
       // Remove template fields
       delete item.key
       delete item.version
+
+      // Debug: Log what we're sending for PDB
+      console.error('PDB item being created:', JSON.stringify(item, null, 2))
 
       // Create the citation
       const result = await this.createItems([item])

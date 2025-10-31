@@ -1,0 +1,86 @@
+Testing Zotero MCP Server via MCP Protocol
+================================================================================
+
+1. Starting MCP server subprocess...
+2. Connecting MCP client to server...
+   ✓ Connected successfully
+
+3. Listing available tools...
+   ✓ Found 7 tools:
+     - create_citation: Create a new citation in Zotero with full metadata and notes...
+     - read_citation: Read a citation from Zotero by its item key, including all m...
+     - verify_citation: Verify that a citation exists in Zotero and check its comple...
+     - search_citations: Search your Zotero library for citations matching a query...
+     - get_collections: List all collections in your Zotero library...
+     - fetch_pdb: Fetch a protein structure from RCSB Protein Data Bank by PDB...
+     - save_pdb_to_zotero: Save a protein structure from PDB to Zotero with full citati...
+
+4. Test: create_citation (minimal)
+   Result: {
+  "content": [
+    {
+      "type": "text",
+      "text": "✓ Citation created successfully!\n\nItem Key: JJDUCG4C\nTitle: MCP Protocol Test Article\nURL: https://example.com/mcp-test\nCollection: Incoming\n\nAttached note with search context and summary.\n\nCitation created successfully in \"Incoming\" collection"
+    }
+  ]
+}
+   ✓ Tool executed successfully
+
+5. Test: create_citation (with authors)
+   Result content: {
+  type: 'text',
+  text: '✓ Citation created successfully!\n' +
+    '\n' +
+    'Item Key: IIRFN6G2\n' +
+    'Title: MCP Test with Authors\n' +
+    'URL: https://example.com/authors-test\n' +
+    'Collection: Incoming\n' +
+    '\n' +
+    'Attached note with search context and summary.\n' +
+    '\n' +
+    'Citation created successfully in "Incoming" collection'
+}
+   ✓ Tool executed successfully
+
+6. Test: save_pdb_to_zotero
+   Result content: {
+  type: 'text',
+  text: '✓ PDB structure saved successfully!\n' +
+    '\n' +
+    'Item Key: H6NC73F2\n' +
+    'Title: STRUCTURE OF UBIQUITIN REFINED AT 1.8 ANGSTROMS RESOLUTION\n' +
+    'URL: https://www.rcsb.org/structure/1UBQ\n' +
+    'Tags: protein structure, PDB, x-ray diffraction\n' +
+    '✓ Note with structure details attached\n' +
+    '✓ PDB file attached (1 file)\n' +
+    '\n' +
+    'PDB 1UBQ saved successfully to "MCP Test" collection with structure file'
+}
+   ✓ Tool executed successfully
+
+7. Test: get_collections
+   Result content: {
+  type: 'text',
+  text: 'Your Zotero collections (15):\n' +
+    '\n' +
+    '1. [NJ5XR3CS] undefined\n' +
+    '2. [PMPU7GMJ] undefined\n' +
+    '3. [26QN68CK] undefined\n' +
+    '4. [XX7Q3MHR] undefined\n' +
+    '5. [49TQEE4X] undefined\n' +
+    '6. [QS3R2SAX] undefined\n' +
+    '7. [V4MGUNJQ] undefined\n' +
+    '8. [MGZV2HHE] undefined\n' +
+    '9. [B7KRBSQS] undefined\n' +
+    '10. [HHTW2R6A] undefined\n' +
+    '11. [2IC78CBW] undefined\n' +
+    '12. [NFV9VYDQ] undefined\n' +
+    '13. [5PKK8KKU] undefined\n' +
+    '14. [Y6QQ2WDN] undefined\n' +
+    '15. [2SDX3RI9] undefined\n'
+}
+   ✓ Tool executed successfully
+
+================================================================================
+MCP Protocol Test Complete
+================================================================================
